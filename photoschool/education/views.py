@@ -5,10 +5,14 @@ from rest_framework.views import APIView
 from reversion.models import Version
 
 from education.models import Program, Theme, Lesson, Student, Studying
+from education.permissions import IsStudentOrSuperUser
 from education.serializers import ProgramSerializer, ProgramCRUDSerializer, ThemeCRUDSerializer, LessonCRUDSerializer, \
-    StudentSerializer, StudentAccessSerializer, LessonSerializer, StudyingSerializer
+    StudentSerializer, StudentAccessSerializer, LessonSerializer, StudyingSerializer, LessonsThemeSerializer
 
 
+# ----------------------------------------------------------------------------------------------------------------------
+# ____________________________________________________Program Block____________________________________________________
+# ----------------------------------------------------------------------------------------------------------------------
 class ProgramViewSet(viewsets.ModelViewSet):
     queryset = Program.objects.all()
     serializer_class = ProgramCRUDSerializer
@@ -77,23 +81,12 @@ class ProgramLessonsAPIView(generics.ListAPIView):
     serializer_class = LessonSerializer
 
     def get_queryset(self, **kwargs):
-        return Lesson.objects.filter(Q(program__title=self.kwargs.get('program')) & Q(is_approved=True))
+        return Lesson.objects.filter(Q(program__title=self.kwargs.get('program_title')) & Q(is_approved=True))
 
 
-class StudyingViewSet(viewsets.ModelViewSet):
-    queryset = Studying.objects.all()
-    serializer_class = StudyingSerializer
-
-    def get_queryset(self):
-        if self.request.user.is_superuser:
-            return self.queryset.all()
-        else:
-            return self.queryset.filter(student__user=self.request.user)
-
-    def perform_create(self, serializer):
-        serializer.save(student=self.request.user.student)
-
-
+# ----------------------------------------------------------------------------------------------------------------------
+# _____________________________________________________Theme Block_____________________________________________________
+# ----------------------------------------------------------------------------------------------------------------------
 class ThemeViewSet(viewsets.ModelViewSet):
     queryset = Theme.objects.all()
     serializer_class = ThemeCRUDSerializer
@@ -160,9 +153,32 @@ class ThemeHistoryRollBackAPIView(APIView):
         return Response(ProgramSerializer(theme).data)
 
 
+# ----------------------------------------------------------------------------------------------------------------------
+# _____________________________________________________Lesson Block_____________________________________________________
+# ----------------------------------------------------------------------------------------------------------------------
 class LessonViewSet(viewsets.ModelViewSet):
     queryset = Lesson.objects.all()
     serializer_class = LessonCRUDSerializer
+
+    def get_queryset(self):
+        program_id = self.kwargs['program_id']
+        return self.queryset.filter(program_id=program_id)
+
+    def perform_create(self, serializer):
+        program_id = self.kwargs['program_id']
+        serializer.save(editor=self.request.user, program_id=program_id)
+
+    def perform_update(self, serializer):
+        serializer.save(editor=self.request.user)
+
+
+# class ChildLessonCreateAPIView(generics.CreateAPIView):
+#     queryset = Lesson.objects.all()
+#     serializer_class = LessonCRUDSerializer
+#
+#     def perform_create(self, serializer):
+#         parent_id = self.kwargs['parent_id']
+#         serializer.save(editor=self.request.user,  parent_id=parent_id)
 
 
 class LessonApproveAPIView(APIView):
@@ -234,6 +250,32 @@ class LessonHistoryRollBackAPIView(APIView):
         return Response(ProgramSerializer(lesson).data)
 
 
+class LessonsThemeAPIView(APIView):
+
+    def get(self, request, **kwargs):
+        themes = Theme.objects.filter(Q(program__title=self.kwargs.get('program_title')) & Q(is_approved=True))
+        lessons = Lesson.objects.filter(Q(program__title=self.kwargs.get('program_title')) & Q(is_approved=True))
+        without_theme = []
+
+        for lesson in lessons:
+            if lesson.theme is None:
+                without_theme.append(lesson)
+
+        return Response({'with_theme': LessonsThemeSerializer(themes, many=True).data,
+                         'without_theme': LessonSerializer(without_theme, many=True).data})
+
+
+class LessonsEditorAPIView(generics.ListAPIView):
+    serializer_class = LessonSerializer
+
+    def get_queryset(self, **kwargs):
+
+        return Lesson.objects.filter(Q(program__title=self.kwargs.get('program')) & Q(is_approved=True))
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# ____________________________________________________Student Block____________________________________________________
+# ----------------------------------------------------------------------------------------------------------------------
 class StudentViewSet(viewsets.ModelViewSet):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
@@ -247,4 +289,16 @@ class StudentAccessViewSet(viewsets.ModelViewSet):
     serializer_class = StudentAccessSerializer
 
     http_method_names = ['get', 'patch']
+
+
+class StudyingViewSet(viewsets.ModelViewSet):
+    queryset = Studying.objects.all()
+    serializer_class = StudyingSerializer
+    permission_classes = [IsStudentOrSuperUser]
+    http_method_names = ['get', 'retrieve', 'patch']
+
+    def get_queryset(self, **kwargs):
+        if self.request.user.is_superuser:
+            return self.queryset.filter(passed=False)
+        return self.queryset.filter(student__user=self.request.user, passed=False)
 

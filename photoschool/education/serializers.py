@@ -3,11 +3,22 @@ from rest_framework import serializers
 from education.models import *
 
 
+# ----------------------------------------------------------------------------------------------------------------------
+# ____________________________________________________Program Block____________________________________________________
+# ----------------------------------------------------------------------------------------------------------------------
 class ProgramSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Program
         fields = '__all__'
+
+
+class ProgramShortSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Program
+        read_only_fields = ('title',)
+        fields = ('title',)
 
 
 class ProgramCRUDSerializer(serializers.ModelSerializer):
@@ -17,6 +28,9 @@ class ProgramCRUDSerializer(serializers.ModelSerializer):
         fields = ('id', 'title', 'description')
 
 
+# ----------------------------------------------------------------------------------------------------------------------
+# _____________________________________________________Theme Block_____________________________________________________
+# ----------------------------------------------------------------------------------------------------------------------
 class ThemeSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -24,6 +38,16 @@ class ThemeSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class ThemeCRUDSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Theme
+        fields = ('id', 'program', 'title', 'description')
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# _____________________________________________________Lesson Block_____________________________________________________
+# ----------------------------------------------------------------------------------------------------------------------
 class LessonSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -31,21 +55,33 @@ class LessonSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class ThemeCRUDSerializer(serializers.ModelSerializer):
-    lessons = LessonSerializer(many=True)
+class LessonShortSerializer(serializers.ModelSerializer):
+    program = ProgramShortSerializer(read_only=True)
 
     class Meta:
-        model = Theme
-        fields = ('id', 'program', 'title', 'description', 'lessons')
+        model = Lesson
+        fields = ('program', 'title', 'theme', 'theory', 'practice')
 
 
 class LessonCRUDSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Lesson
+        read_only_fields = ('program', 'editor', 'parent')
         exclude = ('is_approved',)
 
 
+class LessonsThemeSerializer(serializers.ModelSerializer):
+    lessons = LessonSerializer(many=True)
+
+    class Meta:
+        model = Theme
+        fields = ('id', 'program', 'title', 'lessons')
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# ____________________________________________________Student Block____________________________________________________
+# ----------------------------------------------------------------------------------------------------------------------
 class StudentSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -63,9 +99,10 @@ class StudentAccessSerializer(serializers.ModelSerializer):
 
 
 class StudyingSerializer(serializers.ModelSerializer):
+    lesson = LessonShortSerializer(read_only=True)
 
     class Meta:
         model = Studying
-        read_only_fields = ('passed', 'student', 'lesson')
+        read_only_fields = ('passed', 'student', 'lesson', 'program')
         fields = '__all__'
 

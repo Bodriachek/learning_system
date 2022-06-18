@@ -1,17 +1,13 @@
 import reversion
 from django.db import models
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.utils.functional import cached_property
-
 from users.models import CustomUser
-from django.utils.translation import gettext_lazy as _
 
 
 @reversion.register()
 class Program(models.Model):
     is_approved = models.BooleanField(default=False)
-    title = models.CharField(max_length=100)
+    title = models.CharField(max_length=100, unique=True)
     description = models.TextField(max_length=255)
 
     def __str__(self):
@@ -25,7 +21,7 @@ class Program(models.Model):
 @reversion.register()
 class Theme(models.Model):
     is_approved = models.BooleanField(default=False)
-    program = models.ForeignKey(Program, null=True, related_name='themes', on_delete=models.CASCADE)
+    program = models.ForeignKey(Program, related_name='themes', on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
     description = models.TextField(max_length=255)
 
@@ -35,11 +31,15 @@ class Theme(models.Model):
 
 @reversion.register()
 class Lesson(models.Model):
+    class Meta:
+        ordering = ('id',)
+
+    parent = models.OneToOneField('self', related_name='child', on_delete=models.CASCADE, null=True, blank=True)
     is_approved = models.BooleanField(default=False)
+    editor = models.ForeignKey(CustomUser, on_delete=models.PROTECT, related_name='lesson')
     title = models.CharField(max_length=100)
-    program = models.ForeignKey(Program, null=True, related_name='lessons', on_delete=models.CASCADE)
+    program = models.ForeignKey(Program, related_name='lessons', on_delete=models.CASCADE)
     theme = models.ForeignKey(Theme, blank=True, null=True, related_name='lessons', on_delete=models.CASCADE)
-    description = models.TextField(max_length=255)
     theory = models.TextField(max_length=2000)
     practice = models.CharField(max_length=150)
     answer = models.CharField(max_length=150)
@@ -47,11 +47,20 @@ class Lesson(models.Model):
     def __str__(self):
         return self.title
 
+    def save(self, *args, **kwargs):
+        if self.pk is None:
+            self.answer = str(self.answer).lower()
+
+            program_lessons = self.program.lessons.all()
+            if program_lessons:
+                self.parent = list(program_lessons)[-1]
+        super().save(*args, **kwargs)
+
 
 class Student(models.Model):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='students')
-    wish_program = models.ManyToManyField(Program, null=True, blank=True)
-    open_program = models.ManyToManyField(Program, related_name='students', null=True, blank=True)
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='student')
+    wish_program = models.ManyToManyField(Program, blank=True)
+    open_program = models.ManyToManyField(Program, related_name='students', blank=True)
 
 
 class Studying(models.Model):
@@ -62,7 +71,9 @@ class Studying(models.Model):
 
     def save(self, *args, **kwargs):
         right_answer = self.lesson.answer
-        self.passed = bool(self.answer == right_answer)
+        self.passed = bool(str(self.answer).lower() == right_answer)
+        if self.passed and hasattr(self.lesson, 'child'):
+            Studying.objects.get_or_create(lesson=self.lesson.child, student=self.student)
         super(Studying, self).save(*args, **kwargs)
 
 
