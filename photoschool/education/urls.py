@@ -24,6 +24,7 @@ urlpatterns = [
     # Program
     path('program-approve/<int:pk>/', views.ProgramApproveAPIView.as_view()),
     path('program-history/<int:pk>/', views.ProgramHistoryRollBackAPIView.as_view()),
+    path('program-students-amount/', views.ProgramStudentsAmountListAPIView.as_view()),
     # Theme
     path('theme-approve/<int:pk>/', views.ThemeApproveAPIView.as_view()),
     path('theme-history/<int:pk>/', views.ThemeHistoryRollBackAPIView.as_view()),
@@ -32,7 +33,6 @@ urlpatterns = [
     path('lesson-editor/<str:program_title>/<int:editor_id>/', views.LessonEditorListAPIView.as_view()),
     path('lesson-approve-list/', views.LessonForApproveListAPIView.as_view()),
     path('lesson-history/<int:pk>/', views.LessonHistoryRollBackAPIView.as_view()),
-    path('lessons/<str:program_title>/', views.ProgramLessonsListAPIView.as_view()),
     path('lessons-theme/<str:program_title>/', views.LessonsThemeAPIView.as_view()),
     path('students-lesson-passed/', views.StudentLessonsPassedListAPIIView.as_view()),
     path('student-subscribed/<int:program_id>/', views.StudentProgramSubscribedListAPIIView.as_view()),

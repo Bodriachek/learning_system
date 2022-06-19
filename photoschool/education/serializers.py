@@ -14,11 +14,12 @@ class ProgramSerializer(serializers.ModelSerializer):
 
 
 class ProgramShortSerializer(serializers.ModelSerializer):
+    student_amount = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Program
         read_only_fields = ('title',)
-        fields = ('title',)
+        fields = ('title', 'student_amount')
 
 
 class ProgramCRUDSerializer(serializers.ModelSerializer):
@@ -122,7 +123,8 @@ class StudyingSerializer(serializers.ModelSerializer):
 
 
 class StudentLessonsPassedSerializer(serializers.ModelSerializer):
+    amount_passed_lesson = serializers.IntegerField(read_only=True)
 
     class Meta:
-        model = Studying
-        fields = ('student', 'lesson')
+        model = Student
+        fields = ('user', 'amount_passed_lesson')

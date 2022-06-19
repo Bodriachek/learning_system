@@ -1,3 +1,4 @@
+from django.db.models import When, Count, Case
 from rest_framework import viewsets, generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -7,7 +8,7 @@ from education.models import Program, Theme, Lesson, Student, Studying
 from education.permissions import IsStudentOrSuperUser
 from education.serializers import ProgramSerializer, ProgramCRUDSerializer, ThemeCRUDSerializer, LessonCRUDSerializer, \
     StudentSerializer, StudentAccessSerializer, LessonSerializer, StudyingSerializer, LessonsThemeSerializer, \
-    StudentShortSerializer, StudentLessonsPassedSerializer, LessonMicroSerializer
+    StudentShortSerializer, StudentLessonsPassedSerializer, ProgramShortSerializer
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -77,11 +78,9 @@ class ProgramHistoryRollBackAPIView(APIView):
         return Response(ProgramSerializer(program).data)
 
 
-class ProgramLessonsListAPIView(generics.ListAPIView):
-    serializer_class = LessonMicroSerializer
-
-    def get_queryset(self, **kwargs):
-        return Lesson.objects.filter(program__title=self.kwargs.get('program_title'), is_approved=True)
+class ProgramStudentsAmountListAPIView(generics.ListAPIView):
+    serializer_class = ProgramShortSerializer
+    queryset = Program.objects.annotate(student_amount=Count('students'))
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -323,14 +322,9 @@ class AvailableLessonProgramViewSet(viewsets.ModelViewSet):
 
 
 class StudentLessonsPassedListAPIIView(generics.ListAPIView):
-    queryset = Studying.objects.all()
+    queryset = Student.objects.annotate(amount_passed_lesson=Count(Case(When(studying__passed=True, then=1))))
     serializer_class = StudentLessonsPassedSerializer
     permission_classes = [IsStudentOrSuperUser]
-
-    def get_queryset(self, **kwargs):
-        if self.request.user.is_superuser:
-            return self.queryset.filter(passed=True)
-        return self.queryset.filter(student__user=self.request.user, passed=True)
 
 
 class StudentProgramSubscribedListAPIIView(generics.ListAPIView):
