@@ -1,4 +1,3 @@
-from django.db.models import Q
 from rest_framework import viewsets, generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -7,7 +6,8 @@ from reversion.models import Version
 from education.models import Program, Theme, Lesson, Student, Studying
 from education.permissions import IsStudentOrSuperUser
 from education.serializers import ProgramSerializer, ProgramCRUDSerializer, ThemeCRUDSerializer, LessonCRUDSerializer, \
-    StudentSerializer, StudentAccessSerializer, LessonSerializer, StudyingSerializer, LessonsThemeSerializer
+    StudentSerializer, StudentAccessSerializer, LessonSerializer, StudyingSerializer, LessonsThemeSerializer, \
+    StudentShortSerializer, StudentLessonsPassedSerializer, LessonMicroSerializer
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -77,11 +77,11 @@ class ProgramHistoryRollBackAPIView(APIView):
         return Response(ProgramSerializer(program).data)
 
 
-class ProgramLessonsAPIView(generics.ListAPIView):
-    serializer_class = LessonSerializer
+class ProgramLessonsListAPIView(generics.ListAPIView):
+    serializer_class = LessonMicroSerializer
 
     def get_queryset(self, **kwargs):
-        return Lesson.objects.filter(Q(program__title=self.kwargs.get('program_title')) & Q(is_approved=True))
+        return Lesson.objects.filter(program__title=self.kwargs.get('program_title'), is_approved=True)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -162,7 +162,7 @@ class LessonViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         program_id = self.kwargs['program_id']
-        return self.queryset.filter(program_id=program_id)
+        return self.queryset.filter(program_id=program_id, is_approved=True)
 
     def perform_create(self, serializer):
         program_id = self.kwargs['program_id']
@@ -172,13 +172,19 @@ class LessonViewSet(viewsets.ModelViewSet):
         serializer.save(editor=self.request.user)
 
 
-# class ChildLessonCreateAPIView(generics.CreateAPIView):
-#     queryset = Lesson.objects.all()
-#     serializer_class = LessonCRUDSerializer
-#
-#     def perform_create(self, serializer):
-#         parent_id = self.kwargs['parent_id']
-#         serializer.save(editor=self.request.user,  parent_id=parent_id)
+class LessonEditorListAPIView(generics.ListAPIView):
+    queryset = Lesson.objects.all()
+    serializer_class = LessonCRUDSerializer
+
+    def get_queryset(self):
+        editor_id = self.kwargs['editor_id']
+        return self.queryset.filter(program__title=self.kwargs.get('program_title'),
+                                    editor_id=editor_id, is_approved=True)
+
+
+class LessonForApproveListAPIView(generics.ListAPIView):
+    queryset = Lesson.objects.filter(is_approved=False)
+    serializer_class = LessonSerializer
 
 
 class LessonApproveAPIView(APIView):
@@ -253,8 +259,8 @@ class LessonHistoryRollBackAPIView(APIView):
 class LessonsThemeAPIView(APIView):
 
     def get(self, request, **kwargs):
-        themes = Theme.objects.filter(Q(program__title=self.kwargs.get('program_title')) & Q(is_approved=True))
-        lessons = Lesson.objects.filter(Q(program__title=self.kwargs.get('program_title')) & Q(is_approved=True))
+        themes = Theme.objects.filter(program__title=self.kwargs.get('program_title'), is_approved=True)
+        lessons = Lesson.objects.filter(program__title=self.kwargs.get('program_title'), is_approved=True)
         without_theme = []
 
         for lesson in lessons:
@@ -270,7 +276,7 @@ class LessonsEditorAPIView(generics.ListAPIView):
 
     def get_queryset(self, **kwargs):
 
-        return Lesson.objects.filter(Q(program__title=self.kwargs.get('program')) & Q(is_approved=True))
+        return Lesson.objects.filter(program__title=self.kwargs.get('program'), is_approved=True)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -301,4 +307,36 @@ class StudyingViewSet(viewsets.ModelViewSet):
         if self.request.user.is_superuser:
             return self.queryset.filter(passed=False)
         return self.queryset.filter(student__user=self.request.user, passed=False)
+
+
+class AvailableLessonProgramViewSet(viewsets.ModelViewSet):
+    queryset = Studying.objects.all()
+    serializer_class = StudyingSerializer
+    permission_classes = [IsStudentOrSuperUser]
+    http_method_names = ['get', 'retrieve', 'patch']
+
+    def get_queryset(self, **kwargs):
+        if self.request.user.is_superuser:
+            return self.queryset.all()
+        return self.queryset.filter(lesson__program__id=self.kwargs.get('program_id'),
+                                    student__user=self.request.user)
+
+
+class StudentLessonsPassedListAPIIView(generics.ListAPIView):
+    queryset = Studying.objects.all()
+    serializer_class = StudentLessonsPassedSerializer
+    permission_classes = [IsStudentOrSuperUser]
+
+    def get_queryset(self, **kwargs):
+        if self.request.user.is_superuser:
+            return self.queryset.filter(passed=True)
+        return self.queryset.filter(student__user=self.request.user, passed=True)
+
+
+class StudentProgramSubscribedListAPIIView(generics.ListAPIView):
+    queryset = Student.objects.all()
+    serializer_class = StudentShortSerializer
+
+    def get_queryset(self, **kwargs):
+        return self.queryset.filter(open_program=self.kwargs['program_id'])
 

@@ -63,6 +63,13 @@ class LessonShortSerializer(serializers.ModelSerializer):
         fields = ('program', 'title', 'theme', 'theory', 'practice')
 
 
+class LessonMicroSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Lesson
+        fields = ('program', 'title', 'theme')
+
+
 class LessonCRUDSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -90,6 +97,13 @@ class StudentSerializer(serializers.ModelSerializer):
         exclude = ('open_program',)
 
 
+class StudentShortSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Student
+        fields = ('id', 'user')
+
+
 class StudentAccessSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -103,6 +117,12 @@ class StudyingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Studying
-        read_only_fields = ('passed', 'student', 'lesson', 'program')
+        read_only_fields = ('id', 'passed', 'student', 'lesson', 'program')
         fields = '__all__'
 
+
+class StudentLessonsPassedSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Studying
+        fields = ('student', 'lesson')
