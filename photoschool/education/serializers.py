@@ -43,7 +43,8 @@ class ThemeCRUDSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Theme
-        fields = ('id', 'program', 'title', 'description')
+        read_only_fields = ('program',)
+        fields = ('id', 'title', 'description')
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -80,7 +81,7 @@ class LessonCRUDSerializer(serializers.ModelSerializer):
 
 
 class LessonsThemeSerializer(serializers.ModelSerializer):
-    lessons = LessonSerializer(many=True)
+    lessons = LessonMicroSerializer(many=True)
 
     class Meta:
         model = Theme
@@ -110,7 +111,7 @@ class StudentAccessSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         fields = '__all__'
-        read_only_fields = ('user', 'wish_program',)
+        read_only_fields = ('user', 'wish_program')
 
 
 class StudyingSerializer(serializers.ModelSerializer):
@@ -128,3 +129,12 @@ class StudentLessonsPassedSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         fields = ('user', 'amount_passed_lesson')
+
+
+class ProgramListSerializer(serializers.ModelSerializer):
+    themes = ThemeCRUDSerializer(many=True, read_only=True)
+    lessons = LessonMicroSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Program
+        fields = '__all__'
