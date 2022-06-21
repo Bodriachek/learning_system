@@ -30,7 +30,7 @@ urlpatterns = [
     # Lesson
     path('lesson-approve-list/', views.LessonForApproveListAPIView.as_view()),
     path('lesson-approve/<int:pk>/', views.LessonApproveAPIView.as_view()),
-    path('lesson-editor/<str:program_title>/<int:editor_id>/', views.LessonEditorListAPIView.as_view()),
+    path('lesson-editor/<int:program_id>/<int:editor_id>/', views.LessonEditorListAPIView.as_view()),
     path('lesson-history/<int:pk>/', views.LessonHistoryRollBackAPIView.as_view()),
     path('lessons-theme/<str:program_title>/', views.LessonsThemeAPIView.as_view()),
 

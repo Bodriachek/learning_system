@@ -23,10 +23,16 @@ class IsStudyingOwnerPermission(permissions.BasePermission):
         return obj.student.user == request.user
 
 
-# class IsEditorOrSuperUser(permissions.BasePermission):
-#
-#     def has_permission(self, request, view):
-#         user = request.user
-#         return bool(user and  user.is_editor)
+class IsStaffPermission(permissions.BasePermission):
 
+    def has_permission(self, request, view):
+        user = request.user
+        return bool(user and user.is_editor or user.is_manager or user.is_superuser)
+
+
+class IsManagerOrSuperUserPermission(permissions.BasePermission):
+
+    def has_permission(self, request, view):
+        user = request.user
+        return bool(user and user.is_manager or user.is_superuser)
 
