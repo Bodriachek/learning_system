@@ -24,7 +24,12 @@ def api_client():
 
 @pytest.fixture
 def editor_user():
-    return baker.make(User, first_name='Editor', email='editor@gmail.com')
+    return baker.make(User, first_name='Editor', email='editor@gmail.com', is_editor=True)
+
+
+@pytest.fixture
+def manager_user():
+    return baker.make(User, first_name='Manager', email='manager@gmail.com', is_manager=True)
 
 
 @pytest.fixture
