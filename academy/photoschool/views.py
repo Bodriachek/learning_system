@@ -13,7 +13,7 @@ from .serializers import (
     ProgramSerializer, ProgramCRUDSerializer, ThemeCRUDSerializer, LessonCRUDSerializer,
     StudentSerializer, StudentAccessSerializer, LessonSerializer, StudyingSerializer, LessonsThemeSerializer,
     StudentShortSerializer, StudentLessonsPassedSerializer, ProgramShortSerializer, LessonMicroSerializer,
-    ProgramListSerializer
+    ProgramListSerializer, ThemeSerializer
 )
 
 
@@ -150,7 +150,7 @@ class ThemeApproveAPIView(APIView):
             theme.title = field_dict['title']
             theme.description = field_dict['description']
             theme.save()
-        return Response(ProgramSerializer(theme).data)
+        return Response(ThemeSerializer(theme).data)
 
 
 class ThemeHistoryRollBackAPIView(APIView):
@@ -180,7 +180,7 @@ class ThemeHistoryRollBackAPIView(APIView):
         theme.title = field_dict['title']
         theme.description = field_dict['description']
         theme.save()
-        return Response(ProgramSerializer(theme).data)
+        return Response(ThemeSerializer(theme).data)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -240,12 +240,11 @@ class LessonApproveAPIView(APIView):
             lesson.program_id = field_dict['program_id']
             lesson.theme_id = field_dict['theme_id']
             lesson.title = field_dict['title']
-            lesson.description = field_dict['description']
             lesson.theory = field_dict['theory']
             lesson.practice = field_dict['practice']
             lesson.answer = field_dict['answer']
             lesson.save()
-        return Response(ProgramSerializer(lesson).data)
+        return Response(LessonSerializer(lesson).data)
 
 
 class LessonHistoryRollBackAPIView(APIView):
@@ -274,12 +273,11 @@ class LessonHistoryRollBackAPIView(APIView):
         lesson.program_id = field_dict['program_id']
         lesson.theme_id = field_dict['theme_id']
         lesson.title = field_dict['title']
-        lesson.description = field_dict['description']
         lesson.theory = field_dict['theory']
         lesson.practice = field_dict['practice']
         lesson.answer = field_dict['answer']
         lesson.save()
-        return Response(ProgramSerializer(lesson).data)
+        return Response(LessonSerializer(lesson).data)
 
 
 class LessonsThemeAPIView(APIView):
