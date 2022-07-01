@@ -37,7 +37,7 @@ class ProgramApproveAPIView(APIView):
         for version in versions:
             field_dict = version.field_dict
             field_dict['version_id'] = version.id
-            field_dict['editor'] = version.revision.user.username
+            field_dict['editor'] = version.revision.user.first_name
             if field_dict['is_approved'] is False:
                 not_approved.append(field_dict)
             else:
@@ -286,7 +286,7 @@ class LessonsThemeAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, **kwargs):
-        filter_dict = dict(program__title=self.kwargs.get('program_title'), is_approved=True)
+        filter_dict = dict(program__title=self.kwargs.get('program_id'), is_approved=True)
         themes = Theme.objects.filter(**filter_dict).prefetch_related('lessons')
         lessons = Lesson.objects.filter(**filter_dict).select_related('theme')
         without_theme = []

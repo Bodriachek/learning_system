@@ -36,3 +36,10 @@ class IsManagerOrSuperUserPermission(permissions.BasePermission):
         user = request.user
         return bool(user and user.is_manager or user.is_superuser)
 
+
+class IsSuperUserPermission(permissions.BasePermission):
+
+    def has_permission(self, request, view):
+        user = request.user
+        return bool(user and user.is_superuser)
+
