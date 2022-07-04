@@ -190,12 +190,12 @@ def test_lesson_approve(api_client, editor_user, manager_user, program_photo, th
     del data['id']
 
     assert data == {
-        "parent_id": None,
+        "parent": None,
         "is_approved": True,
-        "editor_id": editor_user.pk,
+        "editor": editor_user.pk,
         'theme': theme_photoshop.pk,
         "title": "PL1",
-        "program_id": program_photo.pk,
+        "program": program_photo.pk,
         "theory": 'About photoshop',
         'practice': 'photoshop',
         'answer': 'photoshop'

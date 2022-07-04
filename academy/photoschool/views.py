@@ -25,6 +25,9 @@ class ProgramViewSet(viewsets.ModelViewSet):
     permission_classes = [IsStaffPermission]
     serializer_class = ProgramCRUDSerializer
 
+    def perform_update(self, serializer):
+        serializer.save(is_approved=False)
+
 
 class ProgramApproveAPIView(APIView):
     permission_classes = [IsManagerOrSuperUserPermission]
@@ -95,10 +98,20 @@ class ProgramStudentsAmountListAPIView(generics.ListAPIView):
     queryset = Program.objects.annotate(student_amount=Count('students'))
 
 
-class ProgramListAPIView(generics.ListAPIView):
-    serializer_class = ProgramListSerializer
+class ProgramListAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
-    queryset = Program.objects.prefetch_related('themes', 'lessons').filter(is_approved=True)
+
+    def get(self, request):
+        program_list = []
+        for program in Program.objects.prefetch_related('themes', 'lessons'):
+            for version in Version.objects.get_for_object(program):
+                field_dict = version.field_dict
+                field_dict['version_id'] = version.id
+                field_dict['editor'] = version.revision.user.username
+                if field_dict['is_approved']:
+                    program_list.append(field_dict)
+                    break
+        return Response(program_list)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
