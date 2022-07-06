@@ -1,6 +1,8 @@
 import reversion
 from django.db import models
 from django.utils.functional import cached_property
+from reversion.models import Version
+
 from users.models import CustomUser
 
 
@@ -55,6 +57,14 @@ class Lesson(models.Model):
             if program_lessons:
                 self.parent = list(program_lessons)[-1]
         super().save(*args, **kwargs)
+
+    @property
+    def actual_version(self):
+        for version in Version.objects.get_for_object(self):
+            field_dict = version.field_dict
+            field_dict['editor'] = version.revision.user.username
+            if field_dict['is_approved']:
+                return field_dict
 
 
 class Student(models.Model):

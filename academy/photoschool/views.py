@@ -11,9 +11,9 @@ from .permissions import (
 )
 from .serializers import (
     ProgramSerializer, ProgramCRUDSerializer, ThemeCRUDSerializer, LessonCRUDSerializer,
-    StudentSerializer, StudentAccessSerializer, LessonSerializer, StudyingSerializer, LessonsThemeSerializer,
+    StudentSerializer, StudentAccessSerializer, LessonSerializer, StudyingSerializer, LessonThemeSerializer,
     StudentShortSerializer, StudentLessonsPassedSerializer, ProgramShortSerializer, LessonMicroSerializer,
-    ProgramListSerializer, ThemeSerializer
+    ThemeSerializer
 )
 
 
@@ -106,8 +106,6 @@ class ProgramListAPIView(APIView):
         for program in Program.objects.prefetch_related('themes', 'lessons'):
             for version in Version.objects.get_for_object(program):
                 field_dict = version.field_dict
-                field_dict['version_id'] = version.id
-                field_dict['editor'] = version.revision.user.username
                 if field_dict['is_approved']:
                     program_list.append(field_dict)
                     break
@@ -124,11 +122,14 @@ class ThemeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         program_id = self.kwargs['program_id']
-        return self.queryset.filter(program_id=program_id, is_approved=True)
+        return self.queryset.filter(program_id=program_id)
 
     def perform_create(self, serializer):
         program_id = self.kwargs['program_id']
         serializer.save(program_id=program_id)
+
+    def perform_update(self, serializer):
+        serializer.save(is_approved=False)
 
 
 class ThemeApproveAPIView(APIView):
@@ -214,6 +215,25 @@ class LessonViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         serializer.save(editor=self.request.user)
+        serializer.save(is_approved=False)
+
+
+class LessonListAPIView(APIView):
+    permission_classes = [IsStaffPermission]
+
+    def get(self, request, **kwargs):
+        lesson_list = []
+        program_id = self.kwargs['program_id']
+
+        for lesson in Lesson.objects.filter(program_id=program_id):
+            for version in Version.objects.get_for_object(lesson):
+                field_dict = version.field_dict
+                field_dict['version_id'] = version.id
+                field_dict['editor'] = version.revision.user.username
+                if field_dict['is_approved']:
+                    lesson_list.append(field_dict)
+                    break
+        return Response(lesson_list)
 
 
 class LessonForApproveListAPIView(generics.ListAPIView):
@@ -292,33 +312,64 @@ class LessonHistoryRollBackAPIView(APIView):
         lesson.save()
         return Response(LessonSerializer(lesson).data)
 
+# ----------------------------------------------------------------------------------------------------------------------
+# -------------------------------------------ЯКАСЬ ДІЧЬ--------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
 
-class LessonsThemeAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+
+class LessonThemeListAPIView(APIView):
+    permission_classes = [IsStaffPermission]
 
     def get(self, request, **kwargs):
-        filter_dict = dict(program__title=self.kwargs.get('program_id'), is_approved=True)
-        themes = Theme.objects.filter(**filter_dict).prefetch_related('lessons')
-        lessons = Lesson.objects.filter(**filter_dict).select_related('theme')
+        program_id = self.kwargs.get('program_id')
+        themes = Theme.objects.filter(program_id=program_id).prefetch_related('actual_lesson')
+        lessons = Lesson.objects.filter(program_id=program_id).select_related('theme')
+        approve_lesson_list = []
+        with_theme = []
         without_theme = []
+        print(LessonListAPIView.get('lesson'))
 
+        # for lesson in lessons:
+        #     for version in Version.objects.get_for_object(lesson):
+        #         field_dict = version.field_dict
+        #         if field_dict['is_approved']:
+        #             approve_lesson_list.append(field_dict)
+        #             break
         for lesson in lessons:
             if lesson.theme is None:
                 without_theme.append(lesson)
 
-        return Response({'with_theme': LessonsThemeSerializer(themes, many=True).data,
-                         'without_theme': LessonMicroSerializer(without_theme, many=True).data})
+        return Response({'with_theme': LessonThemeSerializer(themes, many=True).data})
+                         # 'without_theme': LessonMicroSerializer(without_theme, many=True).data})
 
 
-class LessonEditorListAPIView(generics.ListAPIView):
-    queryset = Lesson.objects.all()
-    serializer_class = LessonCRUDSerializer
-    permission_classes = [IsManagerOrSuperUserPermission]
+# class ThemeLessonListAPIView(APIView):
+#     # serializer_class = LessonThemeSerializer
+#
+#     def get(self, request, **kwargs):
+#         lesson = LessonListAPIView
 
-    def get_queryset(self):
+
+# ----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+class LessonEditorListAPIView(APIView):
+    permission_classes = [IsStaffPermission]
+
+    def get(self, request, **kwargs):
+        lesson_list = []
         editor_id = self.kwargs['editor_id']
-        return self.queryset.filter(program_id=self.kwargs.get('program_id'),
-                                    editor_id=editor_id, is_approved=True)
+
+        for lesson in Lesson.objects.filter(program_id=self.kwargs.get('program_id'), editor_id=editor_id):
+            for version in Version.objects.get_for_object(lesson):
+                field_dict = version.field_dict
+                field_dict['editor'] = version.revision.user.username
+                if field_dict['is_approved']:
+                    lesson_list.append(field_dict)
+                    break
+        return Response(lesson_list)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -327,7 +378,7 @@ class LessonEditorListAPIView(generics.ListAPIView):
 class StudentViewSet(viewsets.ModelViewSet):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
-    permission_classes = [IsStudentPermission]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self, **kwargs):
         if self.request.user.is_superuser:

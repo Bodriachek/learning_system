@@ -35,7 +35,8 @@ urlpatterns = [
     path('lesson-approve/<int:pk>/', views.LessonApproveAPIView.as_view()),
     path('lesson-editor/<int:program_id>/<int:editor_id>/', views.LessonEditorListAPIView.as_view()),
     path('lesson-history/<int:pk>/', views.LessonHistoryRollBackAPIView.as_view()),
-    path('lessons-theme/<int:program_id>/', views.LessonsThemeAPIView.as_view()),
+    path('lesson-theme/<int:program_id>/', views.LessonThemeListAPIView.as_view()),
+    path('lesson-list/<int:program_id>/', views.LessonListAPIView.as_view()),
 
     path('available-lessons/<int:program_id>/', views.AvailableLessonProgramListAPIView.as_view()),
     path('students-lesson-passed/', views.StudentLessonsPassedListAPIIView.as_view()),

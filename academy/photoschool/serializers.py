@@ -80,12 +80,15 @@ class LessonCRUDSerializer(serializers.ModelSerializer):
         exclude = ('is_approved',)
 
 
-class LessonsThemeSerializer(serializers.ModelSerializer):
-    lessons = LessonMicroSerializer(many=True)
+class LessonThemeSerializer(serializers.ModelSerializer):
+    actual_lesson = serializers.SerializerMethodField()
+
+    def get_actual_lesson(self, obj):
+        return obj.lesson.actual_version
 
     class Meta:
         model = Theme
-        fields = ('id', 'program', 'title', 'lessons')
+        fields = ('id', 'program', 'title', 'actual_lesson')
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -115,11 +118,14 @@ class StudentAccessSerializer(serializers.ModelSerializer):
 
 
 class StudyingSerializer(serializers.ModelSerializer):
-    lesson = LessonShortSerializer(read_only=True)
+    actual_lesson = serializers.SerializerMethodField()
+
+    def get_actual_lesson(self, obj):
+        return obj.lesson.actual_version
 
     class Meta:
         model = Studying
-        read_only_fields = ('id', 'passed', 'student', 'lesson', 'program')
+        read_only_fields = ('id', 'passed', 'student', 'actual_lesson', 'program')
         fields = '__all__'
 
 
