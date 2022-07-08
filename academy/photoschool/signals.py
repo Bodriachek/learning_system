@@ -4,7 +4,7 @@ from django.dispatch import receiver
 from .models import Student, Studying, Program
 
 
-@receiver(m2m_changed, sender=Student.open_program.through)
+@receiver(m2m_changed, sender=Student.open_programs.through)
 def create_studying(sender, action, instance, pk_set, **kwargs):
 
     if action == "post_add":

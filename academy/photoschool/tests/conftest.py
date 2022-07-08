@@ -48,11 +48,12 @@ def theme_photoshop(program_photo):
 
 
 @pytest.fixture
-def lesson_photoshop_retouch(program_photo, theme_photoshop, editor_user):
+def lesson_photoshop_retouch(program_photo, editor_user):
     return baker.make(
         Lesson, program=program_photo, theme=None, editor=editor_user,
         title='About Photoshop retouch', theory='You can retouch in photoshop',
-        practice='What you can do in photoshop?', answer='retouch')
+        practice='What you can do in photoshop?', answer='retouch'
+    )
 
 
 @pytest.fixture
@@ -61,11 +62,13 @@ def student_user():
 
 
 @pytest.fixture
-def student1(student_user, program_photo):
-    return baker.make(Student, user=student_user.id, open_program=program_photo.id)
+def student1(student_user):
+    return baker.make(Student, user=student_user)
 
 
 @pytest.fixture
 def studying(student1, lesson_photoshop_retouch):
-    return baker.make(Studying, student=student1, lesson=lesson_photoshop_retouch)
+    studying = baker.make(Studying, student=student1, lesson=lesson_photoshop_retouch)
+    student1.open_programs.add(lesson_photoshop_retouch.program)
+    return studying
 

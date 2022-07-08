@@ -70,8 +70,8 @@ class Lesson(models.Model):
 
 class Student(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='student')
-    wish_program = models.ManyToManyField(Program, blank=True)
-    open_program = models.ManyToManyField(Program, related_name='students', blank=True)
+    wish_programs = models.ManyToManyField(Program, blank=True)
+    open_programs = models.ManyToManyField(Program, related_name='students', blank=True)
 
 
 class Studying(models.Model):

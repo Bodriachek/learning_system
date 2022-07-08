@@ -406,55 +406,55 @@ def test_lesson_approve(api_client, editor_user, manager_user, program_photo, th
 #     }
 
 
-# def test_studying(api_client, student1, student_user, studying, lesson_photoshop_retouch, editor_user, program_photo):
-#     api_client.force_login(student_user)
-#
-#     resp = api_client.patch(f'/api/v1/studying/{studying.pk}/', {
-#         "id": studying.id,
-#         "actual_lesson": {
-#             "id": lesson_photoshop_retouch.id,
-#             "parent_id": None,
-#             "is_approved": True,
-#             "editor_id": editor_user.id,
-#             "title": lesson_photoshop_retouch.title,
-#             "program_id": program_photo.id,
-#             "theme_id": None,
-#             "theory": lesson_photoshop_retouch.theory,
-#             "practice": lesson_photoshop_retouch.practice,
-#             "answer": lesson_photoshop_retouch.answer,
-#             "editor": editor_user.username
-#         },
-#         "answer": "retouch",
-#         "passed": False,
-#         "lesson": lesson_photoshop_retouch.id,
-#         "student": student_user.id
-#     })
-#
-#     assert resp.status_code == status.HTTP_200_OK
-#     data = resp.data
-#
-#     assert 'id' in data
-#     del data['id']
-#
-#     assert data == {
-#         "actual_lesson": {
-#             "id": lesson_photoshop_retouch.id,
-#             "parent_id": None,
-#             "is_approved": True,
-#             "editor_id": editor_user.id,
-#             "title": lesson_photoshop_retouch.title,
-#             "program_id": program_photo.id,
-#             "theme_id": None,
-#             "theory": lesson_photoshop_retouch.theory,
-#             "practice": lesson_photoshop_retouch.practice,
-#             "answer": lesson_photoshop_retouch.answer,
-#             "editor": editor_user.username
-#         },
-#         "answer": "retouch",
-#         "passed": True,
-#         "lesson": lesson_photoshop_retouch.id,
-#         "student": student_user.id
-#     }
+def test_studying(api_client, student1, student_user, studying, lesson_photoshop_retouch, editor_user, program_photo):
+    api_client.force_login(student_user)
+
+    resp = api_client.patch(f'/api/v1/studying/{studying.pk}/', {
+        "id": studying.id,
+        "actual_lesson": {
+            "id": lesson_photoshop_retouch.id,
+            "parent_id": None,
+            "is_approved": True,
+            "editor_id": editor_user.id,
+            "title": lesson_photoshop_retouch.title,
+            "program_id": program_photo.id,
+            "theme_id": None,
+            "theory": lesson_photoshop_retouch.theory,
+            "practice": lesson_photoshop_retouch.practice,
+            "answer": lesson_photoshop_retouch.answer,
+            "editor": editor_user.username
+        },
+        "answer": "retouch",
+        "passed": False,
+        "lesson": lesson_photoshop_retouch.id,
+        "student": student1.id
+    }, format="json")
+
+    assert resp.status_code == status.HTTP_200_OK
+    data = resp.data
+
+    assert 'id' in data
+    del data['id']
+
+    assert data == {
+        "actual_lesson": {
+            "id": lesson_photoshop_retouch.id,
+            "parent_id": None,
+            "is_approved": True,
+            "editor_id": editor_user.id,
+            "title": lesson_photoshop_retouch.title,
+            "program_id": program_photo.id,
+            "theme_id": None,
+            "theory": lesson_photoshop_retouch.theory,
+            "practice": lesson_photoshop_retouch.practice,
+            "answer": lesson_photoshop_retouch.answer,
+            "editor": editor_user.username
+        },
+        "answer": "retouch",
+        "passed": True,
+        "lesson": lesson_photoshop_retouch.id,
+        "student": student1.id
+    }
 # --------------------------------------------- PERMISSIONS ---------------------------------------------
 
 

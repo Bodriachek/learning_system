@@ -99,7 +99,7 @@ class StudentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         read_only_fields = ('user',)
-        exclude = ('open_program',)
+        exclude = ('open_programs',)
 
 
 class StudentShortSerializer(serializers.ModelSerializer):
@@ -114,7 +114,7 @@ class StudentAccessSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
         fields = '__all__'
-        read_only_fields = ('user', 'wish_program')
+        read_only_fields = ('user', 'wish_programs')
 
 
 class StudyingSerializer(serializers.ModelSerializer):

@@ -430,5 +430,5 @@ class StudentProgramSubscribedListAPIIView(generics.ListAPIView):
     permission_classes = [IsManagerOrSuperUserPermission]
 
     def get_queryset(self, **kwargs):
-        return Student.objects.filter(open_program=self.kwargs['program_id'])
+        return Student.objects.filter(open_programs=self.kwargs['program_id'])
 
