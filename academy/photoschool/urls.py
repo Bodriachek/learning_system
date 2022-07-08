@@ -11,7 +11,7 @@ router = routers.SimpleRouter()
 router.register('users', UsersViewSet, basename='users'),
 
 router.register('program', views.ProgramViewSet, basename='program-crud'),
-router.register('theme/(?P<program_id>\d+)', views.ThemeViewSet, basename='theme-crud'),
+router.register(r'theme/(?P<program_id>\d+)', views.ThemeViewSet, basename='theme-crud'),
 router.register(r'lesson/(?P<program_id>\d+)', views.LessonViewSet, basename='lesson-crud'),
 
 # Student

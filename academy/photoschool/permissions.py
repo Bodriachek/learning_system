@@ -8,8 +8,7 @@ class IsStudentPermission(permissions.BasePermission):
         return bool(user and hasattr(user, 'student'))
 
     def has_object_permission(self, request, view, obj):
-        self.has_permission(request, view)
-        return obj.user == request.user
+        return self.has_permission(request, view) and obj.user == request.user
 
 
 class IsStudyingOwnerPermission(permissions.BasePermission):
@@ -19,22 +18,29 @@ class IsStudyingOwnerPermission(permissions.BasePermission):
         return bool(user and hasattr(user, 'student'))
 
     def has_object_permission(self, request, view, obj):
-        self.has_permission(request, view)
-        return obj.student.user == request.user
+        return self.has_permission(request, view) and obj.student.user == request.user
 
 
 class IsStaffPermission(permissions.BasePermission):
 
     def has_permission(self, request, view):
         user = request.user
-        return bool(user and user.is_editor or user.is_manager or user.is_superuser)
+        return bool(
+            user and bool(
+                user.is_editor or user.is_manager or user.is_superuser
+            )
+        )
 
 
 class IsManagerOrSuperUserPermission(permissions.BasePermission):
 
     def has_permission(self, request, view):
         user = request.user
-        return bool(user and user.is_manager or user.is_superuser)
+        return bool(
+            user and bool(
+                user.is_manager or user.is_superuser
+            )
+        )
 
 
 class IsSuperUserPermission(permissions.BasePermission):

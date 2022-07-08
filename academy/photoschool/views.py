@@ -1,5 +1,5 @@
 from django.db.models import When, Count, Case
-from rest_framework import viewsets, generics, permissions
+from rest_framework import viewsets, generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from reversion.models import Version
@@ -99,7 +99,6 @@ class ProgramStudentsAmountListAPIView(generics.ListAPIView):
 
 
 class ProgramListAPIView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         program_list = []
@@ -201,13 +200,12 @@ class ThemeHistoryRollBackAPIView(APIView):
 # _____________________________________________________Lesson Block_____________________________________________________
 # ----------------------------------------------------------------------------------------------------------------------
 class LessonViewSet(viewsets.ModelViewSet):
-    queryset = Lesson.objects.all()
     permission_classes = [IsStaffPermission]
     serializer_class = LessonCRUDSerializer
 
     def get_queryset(self):
         program_id = self.kwargs['program_id']
-        return self.queryset.filter(program_id=program_id, is_approved=True)
+        return Lesson.objects.filter(program_id=program_id, is_approved=True)
 
     def perform_create(self, serializer):
         program_id = self.kwargs['program_id']
@@ -378,12 +376,12 @@ class LessonEditorListAPIView(APIView):
 class StudentViewSet(viewsets.ModelViewSet):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
-    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self, **kwargs):
-        if self.request.user.is_superuser:
+        user = self.request.user
+        if user.is_superuser:
             return self.queryset.all()
-        return self.queryset.filter(user=self.request.user)
+        return self.queryset.filter(user=user)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -404,32 +402,33 @@ class StudyingViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'retrieve', 'patch']
 
     def get_queryset(self, **kwargs):
-        if self.request.user.is_superuser:
+        user = self.request.user
+        if user.is_superuser:
             return self.queryset.filter(passed=False)
-        return self.queryset.filter(student__user=self.request.user, passed=False)
+        return self.queryset.filter(student__user=user, passed=False)
 
 
 class AvailableLessonProgramListAPIView(generics.ListAPIView):
-    queryset = Studying.objects.select_related('lesson')
     serializer_class = StudyingSerializer
     permission_classes = [IsStudyingOwnerPermission]
 
     def get_queryset(self, **kwargs):
-        return self.queryset.filter(lesson__program_id=self.kwargs.get('program_id'),
-                                    student__user=self.request.user)
+        return Studying.objects.select_related('lesson').filter(
+            lesson__program_id=self.kwargs.get('program_id'),
+            student__user=self.request.user
+        )
 
 
 class StudentLessonsPassedListAPIIView(generics.ListAPIView):
-    queryset = Student.objects.annotate(amount_passed_lesson=Count(Case(When(studying__passed=True, then=1))))
     serializer_class = StudentLessonsPassedSerializer
     permission_classes = [IsStudentPermission]
+    queryset = Student.objects.annotate(amount_passed_lesson=Count(Case(When(studying__passed=True, then=1))))
 
 
 class StudentProgramSubscribedListAPIIView(generics.ListAPIView):
-    queryset = Student.objects.all()
     serializer_class = StudentShortSerializer
     permission_classes = [IsManagerOrSuperUserPermission]
 
     def get_queryset(self, **kwargs):
-        return self.queryset.filter(open_program=self.kwargs['program_id'])
+        return Student.objects.filter(open_program=self.kwargs['program_id'])
 

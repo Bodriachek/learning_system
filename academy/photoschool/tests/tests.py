@@ -211,7 +211,6 @@ def test_update_lesson(api_client, editor_user, program_photo, theme_photoshop):
 
     assert 'id' in data
     lesson_id = data['id']
-    lesson = Lesson.objects.get(id=lesson_id)
     del data['id']
 
     assert data == {
@@ -226,11 +225,11 @@ def test_update_lesson(api_client, editor_user, program_photo, theme_photoshop):
     }
 
     resp = api_client.patch(
-        f'/api/v1/lesson/{program_photo.pk}/{lesson.id}/', dict(
+        f'/api/v1/lesson/{program_photo.pk}/{lesson_id}/', dict(
             title="PL1 v2", theory="About photoshop v2", practice="photoshop v2"
         )
     )
-
+    print(resp.data)
     assert resp.status_code == status.HTTP_200_OK
     data = resp.data
 

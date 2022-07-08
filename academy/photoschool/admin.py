@@ -6,24 +6,15 @@ from .models import *
 class LessonInlineModel(admin.TabularInline):
     model = Lesson
     fields = [
-        'is_approved',
-        'editor',
-        'parent',
-        'title',
-        'theme',
-        'theory',
-        'practice',
-        'answer'
-        ]
+        'is_approved', 'editor', 'parent', 'title', 'theme', 'theory', 'practice', 'answer'
+    ]
 
 
 @admin.register(Program)
 class ProgramAdmin(admin.ModelAdmin):
     list_display = ('id', 'title')
     list_display_links = ('id', 'title')
-    inlines = [
-        LessonInlineModel,
-    ]
+    inlines = [LessonInlineModel]
 
 
 @admin.register(Lesson)
