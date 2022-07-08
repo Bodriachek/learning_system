@@ -38,6 +38,11 @@ def program_photo():
 
 
 @pytest.fixture
+def program_video():
+    return baker.make(Program, is_approved=True, title='Video', description='About video')
+
+
+@pytest.fixture
 def theme_photoshop(program_photo):
     return baker.make(Theme, program=program_photo, title='Photoshop', description='About photoshop')
 

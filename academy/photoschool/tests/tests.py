@@ -32,6 +32,82 @@ def test_add_program(api_client, editor_user):
     }
 
 
+def test_update_program(api_client, editor_user):
+    api_client.force_login(editor_user)
+
+    resp = api_client.post('/api/v1/program/', {
+        "title": "Video",
+        "description": 'About video'
+    })
+
+    assert resp.status_code == status.HTTP_201_CREATED
+    data = resp.data
+
+    assert 'id' in data
+    program_id = data['id']
+    program = Program.objects.get(id=program_id)
+    del data['id']
+
+    assert data == {
+        "title": "Video",
+        "description": "About video"
+    }
+
+    resp = api_client.patch(
+        f'/api/v1/program/{program.id}/', dict(
+            title="Video v2", description="About video v2"
+        )
+    )
+
+    assert resp.status_code == status.HTTP_200_OK
+    data = resp.data
+
+    assert 'id' in data
+    del data['id']
+
+    assert data == {
+        "title": "Video v2",
+        "description": "About video v2"
+    }
+
+
+# def test_program_list(api_client, program_photo, program_video, student_user):
+#     api_client.force_login(student_user)
+#
+#     resp = api_client.get(
+#         '/api/v1/cars/?product_weight=400&product_width=3&product_length=2&product_height=1',
+#         content_type='application/json'
+#     )
+#
+#     assert resp.status_code == status.HTTP_200_OK
+#     data = json.loads(json.dumps(resp.data))
+#
+#     for item in data:
+#         assert 'id' in item
+#         del item['id']
+#         assert 'dates_future_orders' in item
+#         del item['dates_future_orders']
+#     print(data)
+#     assert data == [
+#         {
+#             "driver_class": 2,
+#             "height_trunk": "2.00",
+#             "length_trunk": "5.00",
+#             "load_capacity": "500.00",
+#             "title": "Renault",
+#             "width_trunk": "2.00",
+#         },
+#         {
+#             "driver_class": 3,
+#             "height_trunk": "3.00",
+#             "length_trunk": "15.00",
+#             "load_capacity": "800.00",
+#             "title": "Jeep",
+#             "width_trunk": "3.00",
+#         },
+#     ]
+
+
 def test_add_theme(api_client, editor_user, program_photo):
     api_client.force_login(editor_user)
 
@@ -49,6 +125,46 @@ def test_add_theme(api_client, editor_user, program_photo):
     assert data == {
         "title": "lightroom",
         "description": 'About lightroom'
+    }
+
+
+def test_update_theme(api_client, editor_user, program_photo):
+    api_client.force_login(editor_user)
+
+    resp = api_client.post(f'/api/v1/theme/{program_photo.pk}/', {
+        'program': program_photo,
+        "title": "lightroom",
+        "description": 'About lightroom'
+    })
+
+    assert resp.status_code == status.HTTP_201_CREATED
+    data = resp.data
+
+    assert 'id' in data
+    theme_id = data['id']
+    theme = Theme.objects.get(id=theme_id)
+    del data['id']
+
+    assert data == {
+        "title": "lightroom",
+        "description": 'About lightroom'
+    }
+
+    resp = api_client.patch(
+        f'/api/v1/theme/{program_photo.pk}/{theme.id}/', dict(
+            title="lightroom v2", description="About lightroom v2"
+        )
+    )
+
+    assert resp.status_code == status.HTTP_200_OK
+    data = resp.data
+
+    assert 'id' in data
+    del data['id']
+
+    assert data == {
+        "title": "lightroom v2",
+        "description": 'About lightroom v2'
     }
 
 
@@ -72,6 +188,59 @@ def test_add_lesson(api_client, editor_user, program_photo, theme_photoshop):
         "title": "PL1",
         "theory": 'About photoshop',
         'practice': 'photoshop',
+        'answer': 'photoshop',
+        "parent": None,
+        "editor": editor_user.pk,
+        'theme': theme_photoshop.pk,
+        'program': str(program_photo.pk),
+    }
+
+
+def test_update_lesson(api_client, editor_user, program_photo, theme_photoshop):
+    api_client.force_login(editor_user)
+
+    resp = api_client.post(f'/api/v1/lesson/{program_photo.pk}/', {
+        'theme': theme_photoshop.pk,
+        "title": "PL1",
+        "theory": 'About photoshop',
+        'practice': 'photoshop',
+        'answer': 'photoshop'
+    })
+    assert resp.status_code == status.HTTP_201_CREATED
+    data = resp.data
+
+    assert 'id' in data
+    lesson_id = data['id']
+    lesson = Lesson.objects.get(id=lesson_id)
+    del data['id']
+
+    assert data == {
+        "title": "PL1",
+        "theory": 'About photoshop',
+        'practice': 'photoshop',
+        'answer': 'photoshop',
+        "parent": None,
+        "editor": editor_user.pk,
+        'theme': theme_photoshop.pk,
+        'program': str(program_photo.pk),
+    }
+
+    resp = api_client.patch(
+        f'/api/v1/lesson/{program_photo.pk}/{lesson.id}/', dict(
+            title="PL1 v2", theory="About photoshop v2", practice="photoshop v2"
+        )
+    )
+
+    assert resp.status_code == status.HTTP_200_OK
+    data = resp.data
+
+    assert 'id' in data
+    del data['id']
+
+    assert data == {
+        "title": "PL1 v2",
+        "theory": 'About photoshop v2',
+        'practice': 'photoshop v2',
         'answer': 'photoshop',
         "parent": None,
         "editor": editor_user.pk,
@@ -238,8 +407,8 @@ def test_lesson_approve(api_client, editor_user, manager_user, program_photo, th
 #     }
 
 
-# def test_studying(api_client, student1, studying, lesson_photoshop_retouch, editor_user, program_photo):
-#     api_client.force_login(student1)
+# def test_studying(api_client, student1, student_user, studying, lesson_photoshop_retouch, editor_user, program_photo):
+#     api_client.force_login(student_user)
 #
 #     resp = api_client.patch(f'/api/v1/studying/{studying.pk}/', {
 #         "id": studying.id,
@@ -259,7 +428,7 @@ def test_lesson_approve(api_client, editor_user, manager_user, program_photo, th
 #         "answer": "retouch",
 #         "passed": False,
 #         "lesson": lesson_photoshop_retouch.id,
-#         "student": student1.id
+#         "student": student_user.id
 #     })
 #
 #     assert resp.status_code == status.HTTP_200_OK
@@ -285,7 +454,7 @@ def test_lesson_approve(api_client, editor_user, manager_user, program_photo, th
 #         "answer": "retouch",
 #         "passed": True,
 #         "lesson": lesson_photoshop_retouch.id,
-#         "student": student1.id
+#         "student": student_user.id
 #     }
 # --------------------------------------------- PERMISSIONS ---------------------------------------------
 
