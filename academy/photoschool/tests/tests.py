@@ -1,11 +1,12 @@
 import pytest
+import reversion
 from reversion.models import Version
 import json
 from model_bakery import baker
 from rest_framework import status
 from django.contrib.auth import get_user_model
 
-from photoschool.models import Program, Theme, Lesson
+from photoschool.models import Theme, Lesson, Program
 
 pytestmark = pytest.mark.django_db
 
@@ -71,41 +72,39 @@ def test_update_program(api_client, editor_user):
     }
 
 
-# def test_program_list(api_client, program_photo, program_video, student_user):
-#     api_client.force_login(student_user)
-#
-#     resp = api_client.get(
-#         '/api/v1/cars/?product_weight=400&product_width=3&product_length=2&product_height=1',
-#         content_type='application/json'
-#     )
-#
-#     assert resp.status_code == status.HTTP_200_OK
-#     data = json.loads(json.dumps(resp.data))
-#
-#     for item in data:
-#         assert 'id' in item
-#         del item['id']
-#         assert 'dates_future_orders' in item
-#         del item['dates_future_orders']
-#     print(data)
-#     assert data == [
-#         {
-#             "driver_class": 2,
-#             "height_trunk": "2.00",
-#             "length_trunk": "5.00",
-#             "load_capacity": "500.00",
-#             "title": "Renault",
-#             "width_trunk": "2.00",
-#         },
-#         {
-#             "driver_class": 3,
-#             "height_trunk": "3.00",
-#             "length_trunk": "15.00",
-#             "load_capacity": "800.00",
-#             "title": "Jeep",
-#             "width_trunk": "3.00",
-#         },
-#     ]
+@pytest.mark.skip
+def test_program_list(api_client, program_photo, program_video, student_user):
+    api_client.force_login(student_user)
+
+    resp = api_client.get('/api/v1/program-list/')
+
+    assert resp.status_code == status.HTTP_200_OK
+    data = json.loads(json.dumps(resp.data))
+
+    for item in data:
+        assert 'id' in item
+        del item['id']
+        assert 'dates_future_orders' in item
+        del item['dates_future_orders']
+
+    assert data == [
+        {
+            "driver_class": 2,
+            "height_trunk": "2.00",
+            "length_trunk": "5.00",
+            "load_capacity": "500.00",
+            "title": "Renault",
+            "width_trunk": "2.00",
+        },
+        {
+            "driver_class": 3,
+            "height_trunk": "3.00",
+            "length_trunk": "15.00",
+            "load_capacity": "800.00",
+            "title": "Jeep",
+            "width_trunk": "3.00",
+        },
+    ]
 
 
 def test_add_theme(api_client, editor_user, program_photo):
@@ -229,7 +228,7 @@ def test_update_lesson(api_client, editor_user, program_photo, theme_photoshop):
             title="PL1 v2", theory="About photoshop v2", practice="photoshop v2"
         )
     )
-    print(resp.data)
+
     assert resp.status_code == status.HTTP_200_OK
     data = resp.data
 
@@ -244,7 +243,7 @@ def test_update_lesson(api_client, editor_user, program_photo, theme_photoshop):
         "parent": None,
         "editor": editor_user.pk,
         'theme': theme_photoshop.pk,
-        'program': str(program_photo.pk),
+        'program': program_photo.pk,
     }
 
 
@@ -368,45 +367,53 @@ def test_lesson_approve(api_client, editor_user, manager_user, program_photo, th
     }
 
 
-# def test_program_rollback(api_client, editor_user, manager_user):
-#
-#     api_client.force_login(editor_user)
-#
-#     resp = api_client.post('/api/v1/program/', {
-#         'title': 'Test approve v1',
-#         'description': 'Test approve description v1'
-#     })
-#
-#     assert resp.status_code == status.HTTP_201_CREATED
-#     data = resp.data
-#
-#     assert 'id' in data
-#     program_id = data['id']
-#     program = Program.objects.get(id=program_id)
-#
-#     api_client.logout()
-#     api_client.force_login(manager_user)
-#
-#     resp = api_client.put(
-#         f'/api/v1/program/{program.id}/', dict(
-#             version_id=1, approved=True
-#         )
-#     )
-#
-#     assert resp.status_code == status.HTTP_200_OK
-#     data = resp.data
-#
-#     assert 'id' in data
-#     del data['id']
-#
-#     assert data == {
-#         "is_approved": True,
-#         "title": "Test approve v1",
-#         "description": "Test approve description v1"
-#     }
+@pytest.mark.skip
+def test_program_rollback(api_client, editor_user, manager_user):
+
+    api_client.force_login(editor_user)
+
+    resp = api_client.post('/api/v1/program/', {
+        'title': 'Test approve v1',
+        'description': 'Test approve description v1'
+    })
+
+    assert resp.status_code == status.HTTP_201_CREATED
+    data = resp.data
+
+    assert 'id' in data
+    program_id = data['id']
+    program = Program.objects.get(id=program_id)
+
+    api_client.logout()
+    api_client.force_login(manager_user)
+
+    resp = api_client.put(
+        f'/api/v1/program/{program.id}/', dict(
+            version_id=1, approved=True
+        )
+    )
+
+    assert resp.status_code == status.HTTP_200_OK
+    data = resp.data
+
+    assert 'id' in data
+    del data['id']
+
+    assert data == {
+        "is_approved": True,
+        "title": "Test approve v1",
+        "description": "Test approve description v1"
+    }
 
 
 def test_studying(api_client, student1, student_user, studying, lesson_photoshop_retouch, editor_user, program_photo):
+
+    lesson_photoshop_retouch.title = lesson_photoshop_retouch.title + 'a'
+    lesson_photoshop_retouch.is_approved = True
+    with reversion.create_revision():
+        reversion.set_user(editor_user)
+        lesson_photoshop_retouch.save()
+
     api_client.force_login(student_user)
 
     resp = api_client.patch(f'/api/v1/studying/{studying.pk}/', {

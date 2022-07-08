@@ -205,7 +205,7 @@ class LessonViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         program_id = self.kwargs['program_id']
-        return Lesson.objects.filter(program_id=program_id, is_approved=True)
+        return Lesson.objects.filter(program_id=program_id)
 
     def perform_create(self, serializer):
         program_id = self.kwargs['program_id']
@@ -310,42 +310,28 @@ class LessonHistoryRollBackAPIView(APIView):
         lesson.save()
         return Response(LessonSerializer(lesson).data)
 
-# ----------------------------------------------------------------------------------------------------------------------
-# -------------------------------------------ЯКАСЬ ДІЧЬ--------------------------------------------------
-# ----------------------------------------------------------------------------------------------------------------------
-
 
 class LessonThemeListAPIView(APIView):
     permission_classes = [IsStaffPermission]
 
     def get(self, request, **kwargs):
         program_id = self.kwargs.get('program_id')
-        themes = Theme.objects.filter(program_id=program_id).prefetch_related('actual_lesson')
+        themes = Theme.objects.filter(program_id=program_id).prefetch_related('lessons')
         lessons = Lesson.objects.filter(program_id=program_id).select_related('theme')
         approve_lesson_list = []
-        with_theme = []
         without_theme = []
-        print(LessonListAPIView.get('lesson'))
 
-        # for lesson in lessons:
-        #     for version in Version.objects.get_for_object(lesson):
-        #         field_dict = version.field_dict
-        #         if field_dict['is_approved']:
-        #             approve_lesson_list.append(field_dict)
-        #             break
         for lesson in lessons:
-            if lesson.theme is None:
+            approve_lesson_list.append(lesson.actual_version)
+
+        for lesson in approve_lesson_list:
+            if lesson['theme_id'] is None:
                 without_theme.append(lesson)
 
-        return Response({'with_theme': LessonThemeSerializer(themes, many=True).data})
-                         # 'without_theme': LessonMicroSerializer(without_theme, many=True).data})
-
-
-# class ThemeLessonListAPIView(APIView):
-#     # serializer_class = LessonThemeSerializer
-#
-#     def get(self, request, **kwargs):
-#         lesson = LessonListAPIView
+        return Response({
+            'with_theme': LessonThemeSerializer(themes, many=True).data,
+            'without_theme': without_theme
+        })
 
 
 # ----------------------------------------------------------------------------------------------------------------------

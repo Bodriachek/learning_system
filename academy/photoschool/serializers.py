@@ -81,14 +81,17 @@ class LessonCRUDSerializer(serializers.ModelSerializer):
 
 
 class LessonThemeSerializer(serializers.ModelSerializer):
-    actual_lesson = serializers.SerializerMethodField()
+    lessons = serializers.SerializerMethodField()
 
-    def get_actual_lesson(self, obj):
-        return obj.lesson.actual_version
+    def get_lessons(self, obj):
+        actual_lessons = []
+        for lesson in obj.lessons.all():
+            actual_lessons.append(lesson.actual_version)
+        return actual_lessons
 
     class Meta:
         model = Theme
-        fields = ('id', 'program', 'title', 'actual_lesson')
+        fields = ('id', 'program', 'title', 'lessons')
 
 
 # ----------------------------------------------------------------------------------------------------------------------

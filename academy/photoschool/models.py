@@ -61,6 +61,7 @@ class Lesson(models.Model):
 
     @property
     def actual_version(self):
+        print(Version.objects.get_for_object(self))
         for version in Version.objects.get_for_object(self):
             field_dict = version.field_dict
             field_dict['editor'] = version.revision.user.username
