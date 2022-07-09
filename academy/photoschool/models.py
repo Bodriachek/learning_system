@@ -20,6 +20,14 @@ class Program(models.Model):
     def first_lesson(self):
         return self.lessons.first()
 
+    @property
+    def actual_version(self):
+        for version in Version.objects.get_for_object(self):
+            field_dict = version.field_dict
+            field_dict['editor'] = version.revision.user.username
+            if field_dict['is_approved']:
+                return field_dict
+
 
 @reversion.register()
 class Theme(models.Model):
@@ -30,6 +38,14 @@ class Theme(models.Model):
 
     def __str__(self):
         return self.title
+
+    @property
+    def actual_version(self):
+        for version in Version.objects.get_for_object(self):
+            field_dict = version.field_dict
+            field_dict['editor'] = version.revision.user.username
+            if field_dict['is_approved']:
+                return field_dict
 
 
 @reversion.register()
@@ -61,7 +77,6 @@ class Lesson(models.Model):
 
     @property
     def actual_version(self):
-        print(Version.objects.get_for_object(self))
         for version in Version.objects.get_for_object(self):
             field_dict = version.field_dict
             field_dict['editor'] = version.revision.user.username

@@ -101,14 +101,11 @@ class ProgramStudentsAmountListAPIView(generics.ListAPIView):
 class ProgramListAPIView(APIView):
 
     def get(self, request):
-        program_list = []
-        for program in Program.objects.prefetch_related('themes', 'lessons'):
-            for version in Version.objects.get_for_object(program):
-                field_dict = version.field_dict
-                if field_dict['is_approved']:
-                    program_list.append(field_dict)
-                    break
-        return Response(program_list)
+        programs = Program.objects.all()
+        approve_program_list = []
+        for program in programs:
+            approve_program_list.append(program.actual_version)
+        return Response(approve_program_list)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -220,7 +217,7 @@ class LessonListAPIView(APIView):
     permission_classes = [IsStaffPermission]
 
     def get(self, request, **kwargs):
-        lesson_list = []
+        approve_lesson_list = []
         program_id = self.kwargs['program_id']
 
         for lesson in Lesson.objects.filter(program_id=program_id):
@@ -229,9 +226,10 @@ class LessonListAPIView(APIView):
                 field_dict['version_id'] = version.id
                 field_dict['editor'] = version.revision.user.username
                 if field_dict['is_approved']:
-                    lesson_list.append(field_dict)
+                    approve_lesson_list.append(field_dict)
                     break
-        return Response(lesson_list)
+
+        return Response(approve_lesson_list)
 
 
 class LessonForApproveListAPIView(generics.ListAPIView):
@@ -343,17 +341,17 @@ class LessonEditorListAPIView(APIView):
     permission_classes = [IsStaffPermission]
 
     def get(self, request, **kwargs):
-        lesson_list = []
+        approve_lesson_list = []
         editor_id = self.kwargs['editor_id']
+        lessons = Lesson.objects.filter(program_id=self.kwargs.get('program_id'), editor_id=editor_id)
 
-        for lesson in Lesson.objects.filter(program_id=self.kwargs.get('program_id'), editor_id=editor_id):
+        for lesson in lessons:
+            approve_lesson_list.append(lesson.actual_version)
             for version in Version.objects.get_for_object(lesson):
                 field_dict = version.field_dict
                 field_dict['editor'] = version.revision.user.username
-                if field_dict['is_approved']:
-                    lesson_list.append(field_dict)
-                    break
-        return Response(lesson_list)
+
+        return Response(approve_lesson_list)
 
 
 # ----------------------------------------------------------------------------------------------------------------------

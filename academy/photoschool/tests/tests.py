@@ -72,37 +72,46 @@ def test_update_program(api_client, editor_user):
     }
 
 
-@pytest.mark.skip
-def test_program_list(api_client, program_photo, program_video, student_user):
+# @pytest.mark.skip
+def test_program_list(api_client, program_photo, program_video, student_user, editor_user):
+    program_photo.title = program_photo.title + ' v2'
+    program_photo.is_approved = True
+    with reversion.create_revision():
+        reversion.set_user(editor_user)
+        program_photo.save()
+
+    program_video.title = program_photo.title + ' v2'
+    program_photo.is_approved = True
+    with reversion.create_revision():
+        reversion.set_user(editor_user)
+        program_photo.save()
+
     api_client.force_login(student_user)
 
-    resp = api_client.get('/api/v1/program-list/')
+    resp = api_client.get(
+        '/api/v1/program-list/',
+        content_type='application/json'
+    )
 
     assert resp.status_code == status.HTTP_200_OK
     data = json.loads(json.dumps(resp.data))
-
+    print(data)
     for item in data:
         assert 'id' in item
         del item['id']
-        assert 'dates_future_orders' in item
-        del item['dates_future_orders']
+        assert 'editor' in item
+        del item['editor']
 
     assert data == [
         {
-            "driver_class": 2,
-            "height_trunk": "2.00",
-            "length_trunk": "5.00",
-            "load_capacity": "500.00",
-            "title": "Renault",
-            "width_trunk": "2.00",
+            "description": 'About photo',
+            "is_approved": True,
+            "title": 'Photo'
         },
         {
-            "driver_class": 3,
-            "height_trunk": "3.00",
-            "length_trunk": "15.00",
-            "load_capacity": "800.00",
-            "title": "Jeep",
-            "width_trunk": "3.00",
+            "description": 'About video',
+            "is_approved": True,
+            "title": 'Video'
         },
     ]
 
@@ -368,28 +377,25 @@ def test_lesson_approve(api_client, editor_user, manager_user, program_photo, th
 
 
 @pytest.mark.skip
-def test_program_rollback(api_client, editor_user, manager_user):
+def test_program_rollback(api_client, editor_user, manager_user, program_photo):
 
-    api_client.force_login(editor_user)
+    program_photo.title = program_photo.title + ' v1'
+    program_photo.is_approved = True
+    with reversion.create_revision():
+        reversion.set_user(editor_user)
+        program_photo.save()
 
-    resp = api_client.post('/api/v1/program/', {
-        'title': 'Test approve v1',
-        'description': 'Test approve description v1'
-    })
+    program_photo.title = program_photo.title + ' v2'
+    program_photo.is_approved = True
+    with reversion.create_revision():
+        reversion.set_user(editor_user)
+        program_photo.save()
 
-    assert resp.status_code == status.HTTP_201_CREATED
-    data = resp.data
-
-    assert 'id' in data
-    program_id = data['id']
-    program = Program.objects.get(id=program_id)
-
-    api_client.logout()
     api_client.force_login(manager_user)
 
-    resp = api_client.put(
-        f'/api/v1/program/{program.id}/', dict(
-            version_id=1, approved=True
+    resp = api_client.patch(
+        f'/api/v1/program-history/{program_photo.id}/', dict(
+            version_id=1
         )
     )
 
@@ -401,8 +407,8 @@ def test_program_rollback(api_client, editor_user, manager_user):
 
     assert data == {
         "is_approved": True,
-        "title": "Test approve v1",
-        "description": "Test approve description v1"
+        "title": 'Photo v1',
+        "description": "About photo v1"
     }
 
 
