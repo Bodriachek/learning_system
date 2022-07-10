@@ -49,13 +49,18 @@ def program_not_approve():
 
 @pytest.fixture
 def theme_photoshop(program_photo):
-    return baker.make(Theme, program=program_photo, title='Photoshop', description='About photoshop')
+    return baker.make(Theme, is_approved=True, program=program_photo, title='Photoshop', description='About photoshop')
+
+
+@pytest.fixture
+def theme_not_approve(program_photo):
+    return baker.make(Theme, program=program_photo, title='Theme not', description='not theme')
 
 
 @pytest.fixture
 def lesson_photoshop_retouch(program_photo, editor_user):
     return baker.make(
-        Lesson, program=program_photo, theme=None, editor=editor_user,
+        Lesson, is_approved=True, program=program_photo, theme=None, editor=editor_user,
         title='About Photoshop retouch', theory='You can retouch in photoshop',
         practice='What you can do in photoshop?', answer='retouch'
     )
@@ -64,15 +69,37 @@ def lesson_photoshop_retouch(program_photo, editor_user):
 @pytest.fixture
 def lesson_lightroom(program_photo, editor_user):
     return baker.make(
-        Lesson, program=program_photo, theme=None, editor=editor_user,
+        Lesson, is_approved=True, program=program_photo, theme=None, editor=editor_user,
         title='About Lightroom', theory='The best app for photo processing',
         practice='The best app for photo processing?', answer='lightroom'
     )
 
 
 @pytest.fixture
+def lesson_pixelmator(program_photo, editor_user, theme_photoshop):
+    return baker.make(
+        Lesson, is_approved=True, program=program_photo, theme=theme_photoshop, editor=editor_user,
+        title='Pixelmator', theory='Pixelmator', practice='Pixelmator', answer='Pixelmator'
+    )
+
+
+@pytest.fixture
+def lesson_not_approve(program_photo, editor_user):
+    return baker.make(
+        Lesson, program=program_photo, theme=None, editor=editor_user,
+        title='Lesson not approve', theory='not_approve_lesson',
+        practice='not_approve_lesson', answer='answer'
+    )
+
+
+@pytest.fixture
 def student_user():
     return baker.make(User, first_name='Student1', email='student1@gmail.com')
+
+
+@pytest.fixture
+def student_user2():
+    return baker.make(User, username='student2', first_name='Student2', email='student2@gmail.com')
 
 
 @pytest.fixture
