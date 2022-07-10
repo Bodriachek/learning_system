@@ -94,7 +94,6 @@ def test_program_list(api_client, program_photo, program_video, student_user, ed
 
     assert resp.status_code == status.HTTP_200_OK
     data = json.loads(json.dumps(resp.data))
-    print(data)
 
     for item in data:
         assert 'id' in item
@@ -112,6 +111,63 @@ def test_program_list(api_client, program_photo, program_video, student_user, ed
             "description": 'About video',
             "is_approved": True,
             "title": 'Video v2'
+        },
+    ]
+
+
+def test_lesson_list(api_client, program_photo, lesson_photoshop_retouch, lesson_lightroom, manager_user, editor_user):
+    lesson_photoshop_retouch.title = lesson_photoshop_retouch.title + ' v2'
+    lesson_photoshop_retouch.is_approved = True
+    with reversion.create_revision():
+        reversion.set_user(editor_user)
+        lesson_photoshop_retouch.save()
+
+    lesson_lightroom.title = lesson_lightroom.title + ' v2'
+    lesson_lightroom.is_approved = True
+    with reversion.create_revision():
+        reversion.set_user(editor_user)
+        lesson_lightroom.save()
+
+    api_client.force_login(manager_user)
+
+    resp = api_client.get(
+        f'/api/v1/lesson-list/{program_photo.pk}/',
+        content_type='application/json'
+    )
+
+    assert resp.status_code == status.HTTP_200_OK
+    data = json.loads(json.dumps(resp.data))
+
+    for item in data:
+        assert 'id' in item
+        del item['id']
+        assert 'editor' in item
+        del item['editor']
+        assert 'version_id' in item
+        del item['version_id']
+
+    assert data == [
+        {
+            "is_approved": True,
+            "title": "About Photoshop retouch v2",
+            "theory": 'You can retouch in photoshop',
+            'practice': 'What you can do in photoshop?',
+            'answer': 'retouch',
+            "parent_id": None,
+            "editor_id": editor_user.pk,
+            'theme_id': None,
+            'program_id': program_photo.pk,
+        },
+        {
+            "is_approved": True,
+            "title": "About Lightroom v2",
+            "theory": 'The best app for photo processing',
+            'practice': 'The best app for photo processing?',
+            'answer': 'lightroom',
+            "parent_id": lesson_photoshop_retouch.pk,
+            "editor_id": editor_user.pk,
+            'theme_id': None,
+            'program_id': program_photo.pk,
         },
     ]
 
@@ -570,7 +626,6 @@ def test_theme_rollback(api_client, editor_user, manager_user, program_photo, th
     }
 
 
-@pytest.mark.skip
 def test_lesson_rollback(api_client, editor_user, manager_user, program_photo, lesson_photoshop_retouch):
 
     lesson_photoshop_retouch.title = lesson_photoshop_retouch.title + ' v1'
@@ -588,7 +643,7 @@ def test_lesson_rollback(api_client, editor_user, manager_user, program_photo, l
     api_client.force_login(manager_user)
 
     resp = api_client.put(
-        f'/api/v1/theme-history/{lesson_photoshop_retouch.pk}/', dict(
+        f'/api/v1/lesson-history/{lesson_photoshop_retouch.pk}/', dict(
             version_id=1
         )
     )
@@ -601,9 +656,14 @@ def test_lesson_rollback(api_client, editor_user, manager_user, program_photo, l
 
     assert data == {
         "is_approved": True,
-        "title": 'Photoshop v1',
-        "description": "About photoshop",
-        "program": program_photo.id
+        "title": "About Photoshop retouch v1",
+        "theory": 'You can retouch in photoshop',
+        'practice': 'What you can do in photoshop?',
+        'answer': 'retouch',
+        "parent": None,
+        "editor": editor_user.pk,
+        'theme': None,
+        'program': program_photo.pk
     }
 
 

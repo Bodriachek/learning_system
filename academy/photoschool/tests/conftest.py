@@ -62,6 +62,15 @@ def lesson_photoshop_retouch(program_photo, editor_user):
 
 
 @pytest.fixture
+def lesson_lightroom(program_photo, editor_user):
+    return baker.make(
+        Lesson, program=program_photo, theme=None, editor=editor_user,
+        title='About Lightroom', theory='The best app for photo processing',
+        practice='The best app for photo processing?', answer='lightroom'
+    )
+
+
+@pytest.fixture
 def student_user():
     return baker.make(User, first_name='Student1', email='student1@gmail.com')
 
