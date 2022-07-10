@@ -72,7 +72,6 @@ def test_update_program(api_client, editor_user):
     }
 
 
-# @pytest.mark.skip
 def test_program_list(api_client, program_photo, program_video, student_user, editor_user):
     program_photo.title = program_photo.title + ' v2'
     program_photo.is_approved = True
@@ -80,11 +79,11 @@ def test_program_list(api_client, program_photo, program_video, student_user, ed
         reversion.set_user(editor_user)
         program_photo.save()
 
-    program_video.title = program_photo.title + ' v2'
-    program_photo.is_approved = True
+    program_video.title = program_video.title + ' v2'
+    program_video.is_approved = True
     with reversion.create_revision():
         reversion.set_user(editor_user)
-        program_photo.save()
+        program_video.save()
 
     api_client.force_login(student_user)
 
@@ -96,6 +95,7 @@ def test_program_list(api_client, program_photo, program_video, student_user, ed
     assert resp.status_code == status.HTTP_200_OK
     data = json.loads(json.dumps(resp.data))
     print(data)
+
     for item in data:
         assert 'id' in item
         del item['id']
@@ -106,12 +106,12 @@ def test_program_list(api_client, program_photo, program_video, student_user, ed
         {
             "description": 'About photo',
             "is_approved": True,
-            "title": 'Photo'
+            "title": 'Photo v2'
         },
         {
             "description": 'About video',
             "is_approved": True,
-            "title": 'Video'
+            "title": 'Video v2'
         },
     ]
 
@@ -256,7 +256,7 @@ def test_update_lesson(api_client, editor_user, program_photo, theme_photoshop):
     }
 
 
-def test_program_approve(api_client, editor_user, manager_user):
+def test_new_program_approve(api_client, editor_user, manager_user):
     api_client.force_login(editor_user)
 
     resp = api_client.post('/api/v1/program/', {
@@ -290,6 +290,98 @@ def test_program_approve(api_client, editor_user, manager_user):
         "is_approved": True,
         "title": "Test approve v1",
         "description": "Test approve description v1"
+    }
+
+
+def test_new_versions_program_approve(api_client, editor_user, manager_user, program_photo):
+
+    program_photo.title = program_photo.title + ' v1'
+    with reversion.create_revision():
+        reversion.set_user(editor_user)
+        program_photo.save()
+
+    program_photo.title = program_photo.title + ' v2'
+    with reversion.create_revision():
+        reversion.set_user(editor_user)
+        program_photo.save()
+
+    api_client.force_login(manager_user)
+
+    resp = api_client.put(
+        f'/api/v1/program-approve/{program_photo.pk}/', dict(
+            version_id=1, approved=True
+        )
+    )
+
+    assert resp.status_code == status.HTTP_200_OK
+    data = resp.data
+
+    assert 'id' in data
+    del data['id']
+
+    assert data == {
+        "is_approved": True,
+        "title": 'Photo v1',
+        "description": 'About photo'
+    }
+
+
+def test_program_approve_get(api_client, program_photo, manager_user, editor_user):
+    program_photo.title = program_photo.title + ' v1'
+    program_photo.is_approved = True
+    with reversion.create_revision():
+        reversion.set_user(editor_user)
+        program_photo.save()
+
+    api_client.force_login(manager_user)
+
+    resp = api_client.get(f'/api/v1/program-approve/{program_photo.pk}/')
+
+    assert resp.status_code == status.HTTP_200_OK
+    data = resp.data
+
+    assert 'id' in data['published']
+    del data['published']['id']
+
+    assert data == {
+        "published": {
+            "editor": 'Editor',
+            "description": "About photo",
+            "is_approved": True,
+            "title": "Photo v1",
+            "version_id": 1
+        },
+        "not_approved": []
+    }
+
+
+def test_program_not_approve_get(api_client, program_not_approve, manager_user, editor_user):
+    program_not_approve.title = program_not_approve.title + ' v1'
+    with reversion.create_revision():
+        reversion.set_user(editor_user)
+        program_not_approve.save()
+
+    api_client.force_login(manager_user)
+
+    resp = api_client.get(f'/api/v1/program-approve/{program_not_approve.pk}/')
+
+    assert resp.status_code == status.HTTP_200_OK
+    data = resp.data
+
+    # assert 'id' in data['not_approved']
+    # del data['not_approved']['id']
+
+    assert data == {
+        "not_approved": [
+            {
+                "editor": 'Editor',
+                "description": "description",
+                "is_approved": False,
+                "title": "Not v1",
+                "id": 1,
+                "version_id": 1
+            }
+        ]
     }
 
 
@@ -376,7 +468,6 @@ def test_lesson_approve(api_client, editor_user, manager_user, program_photo, th
     }
 
 
-@pytest.mark.skip
 def test_program_rollback(api_client, editor_user, manager_user, program_photo):
 
     program_photo.title = program_photo.title + ' v1'
@@ -393,8 +484,8 @@ def test_program_rollback(api_client, editor_user, manager_user, program_photo):
 
     api_client.force_login(manager_user)
 
-    resp = api_client.patch(
-        f'/api/v1/program-history/{program_photo.id}/', dict(
+    resp = api_client.put(
+        f'/api/v1/program-history/{program_photo.pk}/', dict(
             version_id=1
         )
     )
@@ -408,7 +499,111 @@ def test_program_rollback(api_client, editor_user, manager_user, program_photo):
     assert data == {
         "is_approved": True,
         "title": 'Photo v1',
-        "description": "About photo v1"
+        "description": "About photo"
+    }
+
+    resp = api_client.get(f'/api/v1/program-history/{program_photo.pk}/')
+
+    assert resp.status_code == status.HTTP_200_OK
+    data = resp.data
+
+    for item in data:
+        assert 'id' in item
+        del item['id']
+        assert 'editor' in item
+        del item['editor']
+
+    assert data == [{
+            "is_approved": True,
+            "title": 'Photo v1',
+            'version_id': 3,
+            "description": "About photo"
+        },
+        {
+        "is_approved": True,
+        "title": 'Photo v1 v2',
+        'version_id': 2,
+        "description": "About photo"
+        },
+        {
+            "is_approved": True,
+            "title": 'Photo v1',
+            'version_id': 1,
+            "description": "About photo"
+        }
+    ]
+
+
+def test_theme_rollback(api_client, editor_user, manager_user, program_photo, theme_photoshop):
+
+    theme_photoshop.title = theme_photoshop.title + ' v1'
+    theme_photoshop.is_approved = True
+    with reversion.create_revision():
+        reversion.set_user(editor_user)
+        theme_photoshop.save()
+
+    theme_photoshop.title = theme_photoshop.title + ' v2'
+    theme_photoshop.is_approved = True
+    with reversion.create_revision():
+        reversion.set_user(editor_user)
+        theme_photoshop.save()
+
+    api_client.force_login(manager_user)
+
+    resp = api_client.put(
+        f'/api/v1/theme-history/{theme_photoshop.pk}/', dict(
+            version_id=1
+        )
+    )
+
+    assert resp.status_code == status.HTTP_200_OK
+    data = resp.data
+
+    assert 'id' in data
+    del data['id']
+
+    assert data == {
+        "is_approved": True,
+        "title": 'Photoshop v1',
+        "description": "About photoshop",
+        "program": program_photo.id
+    }
+
+
+@pytest.mark.skip
+def test_lesson_rollback(api_client, editor_user, manager_user, program_photo, lesson_photoshop_retouch):
+
+    lesson_photoshop_retouch.title = lesson_photoshop_retouch.title + ' v1'
+    lesson_photoshop_retouch.is_approved = True
+    with reversion.create_revision():
+        reversion.set_user(editor_user)
+        lesson_photoshop_retouch.save()
+
+    lesson_photoshop_retouch.title = lesson_photoshop_retouch.title + ' v2'
+    lesson_photoshop_retouch.is_approved = True
+    with reversion.create_revision():
+        reversion.set_user(editor_user)
+        lesson_photoshop_retouch.save()
+
+    api_client.force_login(manager_user)
+
+    resp = api_client.put(
+        f'/api/v1/theme-history/{lesson_photoshop_retouch.pk}/', dict(
+            version_id=1
+        )
+    )
+
+    assert resp.status_code == status.HTTP_200_OK
+    data = resp.data
+
+    assert 'id' in data
+    del data['id']
+
+    assert data == {
+        "is_approved": True,
+        "title": 'Photoshop v1',
+        "description": "About photoshop",
+        "program": program_photo.id
     }
 
 
