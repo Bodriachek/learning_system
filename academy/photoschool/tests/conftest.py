@@ -115,15 +115,6 @@ def studying(student, lesson_photoshop_retouch):
 
 
 @pytest.fixture
-def studying2(student, lesson_lightroom):
-    student.open_programs.add(lesson_lightroom.program)
-    studying2 = Studying.objects.get(student=student, lesson=lesson_lightroom)
-    studying2.passed = True
-    studying2.save()
-    return studying2
-
-
-@pytest.fixture
 def studying_signal():
     return baker.make(Studying)
 
