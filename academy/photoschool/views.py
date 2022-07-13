@@ -6,7 +6,7 @@ from reversion.models import Version
 
 from .models import Program, Theme, Lesson, Student, Studying
 from .permissions import (
-    IsStudentPermission, IsStudyingOwnerPermission, IsStaffPermission,
+    IsStudyingOwnerPermission, IsStaffPermission,
     IsManagerOrSuperUserPermission
 )
 from .serializers import (
@@ -52,10 +52,10 @@ class ProgramApproveAPIView(APIView):
         version_id = data["version_id"]
         work_version = Version.objects.get(pk=version_id)
         field_dict = work_version.field_dict
+        program = Program.objects.get(pk=pk)
         if data['approved'] is False:
             work_version.delete()
         else:
-            program = Program.objects.get(pk=pk)
             program.is_approved = True
             program.title = field_dict['title']
             program.description = field_dict['description']
@@ -151,10 +151,10 @@ class ThemeApproveAPIView(APIView):
         version_id = data["version_id"]
         work_version = Version.objects.get(pk=version_id)
         field_dict = work_version.field_dict
+        theme = Theme.objects.get(pk=pk)
         if data['approved'] is False:
             work_version.delete()
         else:
-            theme = Theme.objects.get(pk=pk)
             theme.is_approved = True
             theme.program_id = field_dict['program_id']
             theme.title = field_dict['title']
@@ -261,10 +261,12 @@ class LessonApproveAPIView(APIView):
         version_id = data["version_id"]
         work_version = Version.objects.get(pk=version_id)
         field_dict = work_version.field_dict
+        lesson = Lesson.objects.get(pk=pk)
+        print(data)
         if data['approved'] is False:
+            print(work_version.id)
             work_version.delete()
         else:
-            lesson = Lesson.objects.get(pk=pk)
             lesson.is_approved = True
             lesson.program_id = field_dict['program_id']
             lesson.theme_id = field_dict['theme_id']
@@ -387,8 +389,6 @@ class StudyingViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self, **kwargs):
         user = self.request.user
-        if user.is_superuser:
-            return self.queryset.filter(passed=False)
         return self.queryset.filter(student__user=user, passed=False)
 
 
@@ -400,12 +400,12 @@ class AvailableLessonProgramListAPIView(generics.ListAPIView):
         return Studying.objects.select_related('lesson').filter(
             lesson__program_id=self.kwargs.get('program_id'),
             student__user=self.request.user
-        )
+        ).distinct()
 
 
 class StudentLessonsPassedListAPIIView(generics.ListAPIView):
     serializer_class = StudentLessonsPassedSerializer
-    permission_classes = [IsStudentPermission]
+    permission_classes = [IsManagerOrSuperUserPermission]
     queryset = Student.objects.annotate(amount_passed_lesson=Count(Case(When(studying__passed=True, then=1))))
 
 

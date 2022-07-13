@@ -13,6 +13,5 @@ def create_studying(sender, action, instance, pk_set, **kwargs):
         for program in Program.objects.filter(pk__in=pk_set):
             new_studying.append(Studying(student=instance, lesson=program.first_lesson))
         Studying.objects.bulk_create(new_studying)
-
-    if action == "post_remove":
+    elif action == "post_remove":
         Studying.objects.filter(lesson__program__in=pk_set).delete()

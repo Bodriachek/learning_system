@@ -13,7 +13,7 @@ User = get_user_model()
 def django_db_setup(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
         baker.make(
-            User, is_superuser=True, is_staff=True, username='', email='admin@example.com', first_name='Main admin'
+            User, is_superuser=True, username='admin', is_staff=True, email='admin@example.com', first_name='Main admin'
         )
 
 
@@ -24,12 +24,12 @@ def api_client():
 
 @pytest.fixture
 def editor_user():
-    return baker.make(User, first_name='Editor', email='editor@gmail.com', is_editor=True)
+    return baker.make(User, username='editor', first_name='Editor', email='editor@gmail.com', is_editor=True)
 
 
 @pytest.fixture
 def manager_user():
-    return baker.make(User, first_name='Manager', email='manager@gmail.com', is_manager=True)
+    return baker.make(User, username='manager', first_name='Manager', email='manager@gmail.com', is_manager=True)
 
 
 @pytest.fixture
@@ -60,7 +60,7 @@ def theme_not_approve(program_photo):
 @pytest.fixture
 def lesson_photoshop_retouch(program_photo, editor_user):
     return baker.make(
-        Lesson, is_approved=True, program=program_photo, theme=None, editor=editor_user,
+        Lesson, is_approved=True, program=program_photo, editor=editor_user,
         title='About Photoshop retouch', theory='You can retouch in photoshop',
         practice='What you can do in photoshop?', answer='retouch'
     )
@@ -69,7 +69,7 @@ def lesson_photoshop_retouch(program_photo, editor_user):
 @pytest.fixture
 def lesson_lightroom(program_photo, editor_user):
     return baker.make(
-        Lesson, is_approved=True, program=program_photo, theme=None, editor=editor_user,
+        Lesson, is_approved=True, program=program_photo, editor=editor_user,
         title='About Lightroom', theory='The best app for photo processing',
         practice='The best app for photo processing?', answer='lightroom'
     )
@@ -86,7 +86,7 @@ def lesson_pixelmator(program_photo, editor_user, theme_photoshop):
 @pytest.fixture
 def lesson_not_approve(program_photo, editor_user):
     return baker.make(
-        Lesson, program=program_photo, theme=None, editor=editor_user,
+        Lesson, program=program_photo, editor=editor_user,
         title='Lesson not approve', theory='not_approve_lesson',
         practice='not_approve_lesson', answer='answer'
     )
@@ -103,13 +103,27 @@ def student_user2():
 
 
 @pytest.fixture
-def student1(student_user):
+def student(student_user):
     return baker.make(Student, user=student_user)
 
 
 @pytest.fixture
-def studying(student1, lesson_photoshop_retouch):
-    studying = baker.make(Studying, student=student1, lesson=lesson_photoshop_retouch)
-    student1.open_programs.add(lesson_photoshop_retouch.program)
+def studying(student, lesson_photoshop_retouch):
+    student.open_programs.add(lesson_photoshop_retouch.program)
+    studying = Studying.objects.get(student=student, lesson=lesson_photoshop_retouch)
     return studying
+
+
+@pytest.fixture
+def studying2(student, lesson_lightroom):
+    student.open_programs.add(lesson_lightroom.program)
+    studying2 = Studying.objects.get(student=student, lesson=lesson_lightroom)
+    studying2.passed = True
+    studying2.save()
+    return studying2
+
+
+@pytest.fixture
+def studying_signal():
+    return baker.make(Studying)
 

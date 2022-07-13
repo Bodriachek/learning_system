@@ -7,10 +7,24 @@ from reversion.models import Version
 from users.models import CustomUser
 
 
-@reversion.register()
-class Program(models.Model):
-    is_approved = models.BooleanField(default=False)
+class EditableModelMixin(models.Model):
+    class Meta:
+        abstract = True
+        
     title = models.CharField(max_length=100, unique=True)
+    is_approved = models.BooleanField(default=False)
+    
+    @property
+    def actual_version(self):
+        for version in Version.objects.get_for_object(self):
+            field_dict = version.field_dict
+            field_dict['editor'] = version.revision.user.username
+            if field_dict['is_approved']:
+                return field_dict
+    
+
+@reversion.register()
+class Program(EditableModelMixin):
     description = models.TextField(max_length=255)
 
     def __str__(self):
@@ -20,45 +34,25 @@ class Program(models.Model):
     def first_lesson(self):
         return self.lessons.first()
 
-    @property
-    def actual_version(self):
-        for version in Version.objects.get_for_object(self):
-            field_dict = version.field_dict
-            field_dict['editor'] = version.revision.user.username
-            if field_dict['is_approved']:
-                return field_dict
-
-
+   
 @reversion.register()
-class Theme(models.Model):
-    is_approved = models.BooleanField(default=False)
+class Theme(EditableModelMixin):
     program = models.ForeignKey(Program, related_name='themes', on_delete=models.CASCADE)
-    title = models.CharField(max_length=100)
     description = models.TextField(max_length=255)
 
     def __str__(self):
         return self.title
 
-    @property
-    def actual_version(self):
-        for version in Version.objects.get_for_object(self):
-            field_dict = version.field_dict
-            field_dict['editor'] = version.revision.user.username
-            if field_dict['is_approved']:
-                return field_dict
-
 
 @reversion.register()
-class Lesson(models.Model):
+class Lesson(EditableModelMixin):
     class Meta:
         ordering = ('id',)
 
     parent = models.OneToOneField('self', related_name='child', on_delete=models.CASCADE, null=True, blank=True)
-    is_approved = models.BooleanField(default=False)
-    editor = models.ForeignKey(CustomUser, on_delete=models.PROTECT, related_name='lesson')
-    title = models.CharField(max_length=100)
+    editor = models.ForeignKey(CustomUser, on_delete=models.PROTECT, related_name='lessons')
     program = models.ForeignKey(Program, related_name='lessons', on_delete=models.CASCADE)
-    theme = models.ForeignKey(Theme, blank=True, null=True, related_name='lessons', on_delete=models.CASCADE)
+    theme = models.ForeignKey(Theme, blank=True, null=True, related_name='lessons', on_delete=models.SET_NULL)
     theory = models.TextField(max_length=2000)
     practice = models.CharField(max_length=150)
     answer = models.CharField(max_length=150)
@@ -74,14 +68,6 @@ class Lesson(models.Model):
             if program_lessons:
                 self.parent = list(program_lessons)[-1]
         super().save(*args, **kwargs)
-
-    @property
-    def actual_version(self):
-        for version in Version.objects.get_for_object(self):
-            field_dict = version.field_dict
-            field_dict['editor'] = version.revision.user.username
-            if field_dict['is_approved']:
-                return field_dict
 
 
 class Student(models.Model):
@@ -102,6 +88,9 @@ class Studying(models.Model):
         if self.passed and hasattr(self.lesson, 'child'):
             Studying.objects.get_or_create(lesson=self.lesson.child, student=self.student)
         super(Studying, self).save(*args, **kwargs)
+
+    class Meta:
+        unique_together = ['lesson', 'student']
 
 
 
